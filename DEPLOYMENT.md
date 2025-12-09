@@ -1,34 +1,37 @@
-# Ohio BMV SQL MCP - Deployment Reference
+# DMV Agent MCP - Deployment Reference
 
-**Created:** December 2, 2025  
-**Environment:** ohio-bmv-sql-mcp
+**Note:** This is a reference deployment guide. Replace all example values with your actual deployment details.
 
 ## Azure Resources
 
 ### Function App
-- **Name:** `func-api-lwtfpn4ptwceg`
-- **Resource Group:** `rg-ohio-bmv-sql-mcp`
-- **Region:** East US 2 (eastus2)
-- **Endpoint:** https://func-api-lwtfpn4ptwceg.azurewebsites.net
-- **Subscription:** ME-MngEnvMCAP740785-johncarroll-1 (e7b12c0e-51b7-4507-af01-6ea306d0b194)
+- **Name:** `<your-function-app-name>`
+- **Resource Group:** `<your-resource-group>`
+- **Region:** `<your-region>` (e.g., East US 2)
+- **Endpoint:** `https://<your-function-app-name>.azurewebsites.net`
+- **Subscription:** `<your-subscription-name>` (`<subscription-id>`)
 
 ### Azure SQL Database
-- **Server:** ohio-bmv-demo-sql.database.windows.net
-- **Database:** ohio-bmv-demo-db
-- **User:** bmv_bot
-- **Password:** SuperStrongP@ssword123!
-- **Table:** dbo.LicenseAddressChangeRequests (19 columns)
+- **Server:** `<your-sql-server>.database.windows.net`
+- **Database:** `<your-database-name>`
+- **User:** `<sql-username>`
+- **Password:** `<stored-in-key-vault-or-secure-config>`
+- **Table:** `dbo.LicenseAddressChangeRequests` (19 columns)
 
 ### MCP Extension System Key
+⚠️ **Store securely in Azure Key Vault. Never commit to source control.**
+
 ```
--5fiL9J8le5mT_yMurHSdMB3M_wO99b5A90V4nO7BU3BAzFuM4X_HA==
+<retrieve-from-azure-portal-or-cli>
 ```
 
 ## Connection Strings
 
-### SQL Connection String
+### SQL Connection String (Example)
+⚠️ **Store in Key Vault or App Settings, never in source control**
+
 ```
-Driver={ODBC Driver 18 for SQL Server};Server=tcp:ohio-bmv-demo-sql.database.windows.net,1433;Database=ohio-bmv-demo-db;UID=bmv_bot;PWD=SuperStrongP@ssword123!;Encrypt=yes;TrustServerCertificate=no;Connection Timeout=30;
+Driver={ODBC Driver 18 for SQL Server};Server=tcp:<your-server>.database.windows.net,1433;Database=<your-db>;UID=<username>;PWD=<password>;Encrypt=yes;TrustServerCertificate=no;Connection Timeout=30;
 ```
 
 ## MCP Endpoints
@@ -40,7 +43,7 @@ http://0.0.0.0:7071/runtime/webhooks/mcp/sse
 
 ### Production (Azure)
 ```
-https://func-api-lwtfpn4ptwceg.azurewebsites.net/runtime/webhooks/mcp/sse?code=-5fiL9J8le5mT_yMurHSdMB3M_wO99b5A90V4nO7BU3BAzFuM4X_HA==
+https://<your-function-app>.azurewebsites.net/runtime/webhooks/mcp/sse?code=<your-system-key>
 ```
 
 ## Quick Commands
@@ -59,20 +62,20 @@ echo $RESOURCE_GROUP
 
 ### View Function Keys
 ```bash
-az functionapp keys list --resource-group rg-ohio-bmv-sql-mcp --name func-api-lwtfpn4ptwceg
+az functionapp keys list --resource-group $RESOURCE_GROUP --name $FUNCTION_APP_NAME
 ```
 
 ### Update SQL Connection String
 ```bash
 az functionapp config appsettings set \
-  --name func-api-lwtfpn4ptwceg \
-  --resource-group rg-ohio-bmv-sql-mcp \
-  --settings SQL_CONNECTION_STRING="Driver={ODBC Driver 18 for SQL Server};Server=tcp:ohio-bmv-demo-sql.database.windows.net,1433;Database=ohio-bmv-demo-db;UID=bmv_bot;PWD=SuperStrongP@ssword123!;Encrypt=yes;TrustServerCertificate=no;Connection Timeout=30;"
+  --name $FUNCTION_APP_NAME \
+  --resource-group $RESOURCE_GROUP \
+  --settings SQL_CONNECTION_STRING="<your-connection-string>"
 ```
 
 ### View Function Logs
 ```bash
-az webapp log tail --name func-api-lwtfpn4ptwceg --resource-group rg-ohio-bmv-sql-mcp
+az webapp log tail --name $FUNCTION_APP_NAME --resource-group $RESOURCE_GROUP
 ```
 
 ### Redeploy Code Only
@@ -100,7 +103,7 @@ azd down
 
 2. Connect to production endpoint:
    ```
-   https://func-api-lwtfpn4ptwceg.azurewebsites.net/runtime/webhooks/mcp/sse?code=-5fiL9J8le5mT_yMurHSdMB3M_wO99b5A90V4nO7BU3BAzFuM4X_HA==
+   https://<your-function-app>.azurewebsites.net/runtime/webhooks/mcp/sse?code=<your-system-key>
    ```
 
 3. List tools and run `create_license_address_change_request`
@@ -118,13 +121,13 @@ SELECT TOP 10 * FROM dbo.LicenseAddressChangeRequests ORDER BY CreatedAt DESC;
 ## VS Code Copilot Configuration
 
 The `.vscode/mcp.json` file is configured with:
-- **Function App Name:** func-api-lwtfpn4ptwceg
+- **Function App Name:** `<your-function-app-name>`
 - **MCP Extension Key:** (prompted at runtime)
 
 To use:
 1. Command Palette → "List MCP Servers"
-2. Start "remote-mcp-function"
-3. Enter key when prompted: `-5fiL9J8le5mT_yMurHSdMB3M_wO99b5A90V4nO7BU3BAzFuM4X_HA==`
+2. Start your MCP server
+3. Enter key when prompted (retrieve from Azure Portal or CLI)
 
 ## MCP Tools Available
 
@@ -161,12 +164,12 @@ Creates Ohio BMV license address change request with 19 parameters:
 ### If function app doesn't connect to SQL
 1. Verify connection string is set:
    ```bash
-   az functionapp config appsettings list --name func-api-lwtfpn4ptwceg --resource-group rg-ohio-bmv-sql-mcp --query "[?name=='SQL_CONNECTION_STRING']"
+   az functionapp config appsettings list --name $FUNCTION_APP_NAME --resource-group $RESOURCE_GROUP --query "[?name=='SQL_CONNECTION_STRING']"
    ```
 
 2. Check function logs for errors:
    ```bash
-   az webapp log tail --name func-api-lwtfpn4ptwceg --resource-group rg-ohio-bmv-sql-mcp
+   az webapp log tail --name $FUNCTION_APP_NAME --resource-group $RESOURCE_GROUP
    ```
 
 ### If MCP Inspector can't connect
@@ -175,7 +178,7 @@ Creates Ohio BMV license address change request with 19 parameters:
 - Ensure the URL includes the `?code=` parameter
 
 ### If SQL INSERT fails
-- Verify bmv_bot user has INSERT permissions: `GRANT INSERT ON dbo.LicenseAddressChangeRequests TO bmv_bot;`
+- Verify user has INSERT permissions: `GRANT INSERT ON dbo.LicenseAddressChangeRequests TO <username>;`
 - Check that all 19 required parameters are being passed
 - Verify date format for dateOfBirth (YYYY-MM-DD)
 
